@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy import stats as st
 
 # 1) Read data
-df = pd.read_csv("machine_data-1.cvs")
+df = pd.read_csv("machine_data-1.csv")
 
 # 2) Clean up
 if "Unnamed: 0" in df.columns:
