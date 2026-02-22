@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.preprocessing import MinMaxScaler
 
 
 
@@ -149,3 +151,15 @@ acc_p = accuracy_score(y_test_p, y_pred_p)
 print("SVM Accuracy with Pearson Top-8:", acc_p)
 print("Confusion matrix:\n", confusion_matrix(y_test_p, y_pred_p))
 print(classification_report(y_test_p, y_pred_p, digits=4))
+
+# ---  Chi-Square Feature Selection ---
+scaler_mm = MinMaxScaler()
+X_scaled_mm = scaler_mm.fit_transform(X_df)
+
+chi_selector = SelectKBest(score_func=chi2, k=8)
+X_chi = chi_selector.fit_transform(X_scaled_mm, y)
+
+chi_features = X_df.columns[chi_selector.get_support()]
+
+print("\nTop 8 Chi-Square Features:")
+print(chi_features)
