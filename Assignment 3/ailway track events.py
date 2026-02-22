@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import classification_report, confusion_matrix
+
 
 # ---  Loading the three datasets ---
 file1 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail1_extracted_features_acceleration_m1ai1-1.csv"
@@ -100,3 +102,8 @@ cv_scores = cross_val_score(
 print("CV accuracy scores:", cv_scores)
 print("Mean CV accuracy:", cv_scores.mean())
 print("Std CV accuracy:", cv_scores.std())
+
+print("\n--- Train/Test Evaluation ---")
+print("Accuracy:", accuracy)
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification report:\n", classification_report(y_test, y_pred, digits=4))
