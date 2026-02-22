@@ -9,6 +9,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_selection import RFE
 
 
 
@@ -179,3 +180,14 @@ acc_c = accuracy_score(y_test_c, y_pred_c)
 print("SVM Accuracy with Chi-Square Top-8:", acc_c)
 print("Confusion matrix:\n", confusion_matrix(y_test_c, y_pred_c))
 print(classification_report(y_test_c, y_pred_c, digits=4))
+
+# --- RFE Feature Selection ---
+svm_linear = SVC(kernel="linear")
+
+rfe_selector = RFE(estimator=svm_linear, n_features_to_select=8)
+rfe_selector.fit(X_df, y)
+
+rfe_features = X_df.columns[rfe_selector.support_]
+
+print("\nTop 8 RFE Features:")
+print(rfe_features)
