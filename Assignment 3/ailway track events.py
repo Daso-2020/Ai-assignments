@@ -220,3 +220,19 @@ top_features_rf = rf_importances.sort_values(ascending=False).head(8).index
 
 print("\nTop 8 RF Importance Features:")
 print(top_features_rf)
+
+# --- Evaluate SVM with RF-selected features (Top 8) ---
+X_rf = X_df[top_features_rf]
+
+X_train_f, X_test_f, y_train_f, y_test_f = train_test_split(
+    X_rf, y, test_size=0.2, random_state=42
+)
+
+svm_pipe.fit(X_train_f, y_train_f)
+y_pred_f = svm_pipe.predict(X_test_f)
+
+acc_f = accuracy_score(y_test_f, y_pred_f)
+
+print("SVM Accuracy with RF Top-8:", acc_f)
+print("Confusion matrix:\n", confusion_matrix(y_test_f, y_pred_f))
+print(classification_report(y_test_f, y_pred_f, digits=4))
