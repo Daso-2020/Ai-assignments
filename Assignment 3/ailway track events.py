@@ -115,3 +115,14 @@ y = df["label"]
 feature_names = X_df.columns.tolist()
 print("Number of features:", len(feature_names))
 print("Features:", feature_names)
+
+# ---  Pearson Correlation Feature Selection ---
+corr_with_label = X_df.copy()
+corr_with_label["label"] = y
+
+correlations = corr_with_label.corr()["label"].drop("label").abs()
+
+top_features_pearson = correlations.sort_values(ascending=False).head(8).index
+
+print("\nTop 8 Pearson Features:")
+print(top_features_pearson)
