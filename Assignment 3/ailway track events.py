@@ -10,6 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestClassifier
 
 
 
@@ -207,3 +208,15 @@ acc_r = accuracy_score(y_test_r, y_pred_r)
 print("SVM Accuracy with RFE Top-8:", acc_r)
 print("Confusion matrix:\n", confusion_matrix(y_test_r, y_pred_r))
 print(classification_report(y_test_r, y_pred_r, digits=4))
+
+# ---  Random Forest Feature Importance ---
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_df, y)
+
+importances = rf.feature_importances_
+
+rf_importances = pd.Series(importances, index=X_df.columns)
+top_features_rf = rf_importances.sort_values(ascending=False).head(8).index
+
+print("\nTop 8 RF Importance Features:")
+print(top_features_rf)
