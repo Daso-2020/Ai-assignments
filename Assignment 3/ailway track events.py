@@ -35,3 +35,26 @@ print("Dropped columns:", existing_to_drop)
 print("Missing (not found, OK):", missing)
 print("New shape after drop:", df.shape)
 print("Remaining columns:\n", df.columns)
+
+# ---  Convert event column to binary label ---
+df["label"] = (df["event"] != "normal").astype(int)
+
+print("Label distribution (0=normal, 1=event):")
+print(df["label"].value_counts())
+
+#  see which event types became 1
+print("\nEvent types:")
+print(df["event"].value_counts().head(15))
+
+# ---  Separate features and labels ---
+X = df.drop(columns=["event", "label"])
+y = df["label"]
+
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+
+# --- Normalize the dataset ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+print("Normalized X shape:", X_scaled.shape)
