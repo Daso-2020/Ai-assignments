@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 # ---  Loading the three datasets ---
 file1 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail1_extracted_features_acceleration_m1ai1-1.csv"
@@ -58,3 +59,15 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 print("Normalized X shape:", X_scaled.shape)
+
+# --- Split data (80% train / 20% test) ---
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y,
+    test_size=0.2,
+    random_state=42
+)
+
+print("X_train:", X_train.shape)
+print("X_test:", X_test.shape)
+print("y_train:", y_train.shape)
+print("y_test:", y_test.shape)
