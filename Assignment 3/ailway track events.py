@@ -163,3 +163,19 @@ chi_features = X_df.columns[chi_selector.get_support()]
 
 print("\nTop 8 Chi-Square Features:")
 print(chi_features)
+
+# ---  Evaluate SVM with Chi-Square-selected features (Top 8) ---
+X_chi_df = X_df[chi_features]
+
+X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(
+    X_chi_df, y, test_size=0.2, random_state=42
+)
+
+svm_pipe.fit(X_train_c, y_train_c)
+y_pred_c = svm_pipe.predict(X_test_c)
+
+acc_c = accuracy_score(y_test_c, y_pred_c)
+
+print("SVM Accuracy with Chi-Square Top-8:", acc_c)
+print("Confusion matrix:\n", confusion_matrix(y_test_c, y_pred_c))
+print(classification_report(y_test_c, y_pred_c, digits=4))
