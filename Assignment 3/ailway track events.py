@@ -18,7 +18,20 @@ print("Trail3 shape:", df3.shape)
 print("\nColumns preview:\n", df1.columns)
 print("\nEvent values example:\n", df1["event"].value_counts().head(10))
 
-# --- Combine the datasets ---
+# --- Combining the datasets ---
 df = pd.concat([df1, df2, df3], ignore_index=True)
 
 print("Combined dataset shape:", df.shape)
+
+# ---  Removing unwanted columns  ---
+cols_to_drop = ["start_time", "axle", "cluster", "tsne_1", "tsne_2"]
+
+existing_to_drop = [c for c in cols_to_drop if c in df.columns]
+missing = [c for c in cols_to_drop if c not in df.columns]
+
+df = df.drop(columns=existing_to_drop)
+
+print("Dropped columns:", existing_to_drop)
+print("Missing (not found, OK):", missing)
+print("New shape after drop:", df.shape)
+print("Remaining columns:\n", df.columns)
