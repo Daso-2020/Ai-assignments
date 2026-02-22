@@ -17,3 +17,8 @@ print("Trail3 shape:", df3.shape)
 
 print("\nColumns preview:\n", df1.columns)
 print("\nEvent values example:\n", df1["event"].value_counts().head(10))
+
+# --- Combine the datasets ---
+df = pd.concat([df1, df2, df3], ignore_index=True)
+
+print("Combined dataset shape:", df.shape)
