@@ -191,3 +191,19 @@ rfe_features = X_df.columns[rfe_selector.support_]
 
 print("\nTop 8 RFE Features:")
 print(rfe_features)
+
+# ---  Evaluate SVM with RFE-selected features (Top 8) ---
+X_rfe = X_df[rfe_features]
+
+X_train_r, X_test_r, y_train_r, y_test_r = train_test_split(
+    X_rfe, y, test_size=0.2, random_state=42
+)
+
+svm_pipe.fit(X_train_r, y_train_r)
+y_pred_r = svm_pipe.predict(X_test_r)
+
+acc_r = accuracy_score(y_test_r, y_pred_r)
+
+print("SVM Accuracy with RFE Top-8:", acc_r)
+print("Confusion matrix:\n", confusion_matrix(y_test_r, y_pred_r))
+print(classification_report(y_test_r, y_pred_r, digits=4))
