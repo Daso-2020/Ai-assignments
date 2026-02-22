@@ -11,7 +11,13 @@ from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier
-
+# bug cheaking 
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+# ---
 
 
 # ---  Loading the three datasets ---
@@ -236,3 +242,70 @@ acc_f = accuracy_score(y_test_f, y_pred_f)
 print("SVM Accuracy with RF Top-8:", acc_f)
 print("Confusion matrix:\n", confusion_matrix(y_test_f, y_pred_f))
 print(classification_report(y_test_f, y_pred_f, digits=4))
+
+# cheaking results somthing is off!
+# All features baseline WITHOUT leakage
+X_all = X_df  # 16 features
+y_all = y
+
+X_train_a, X_test_a, y_train_a, y_test_a = train_test_split(
+    X_all, y_all, test_size=0.2, random_state=42, stratify=y_all
+)
+
+svm_all_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("svm", SVC(kernel="rbf"))
+])
+
+svm_all_pipe.fit(X_train_a, y_train_a)
+y_pred_a = svm_all_pipe.predict(X_test_a)
+
+print("Leak-free ALL-features accuracy:", accuracy_score(y_test_a, y_pred_a))
+print("Train label counts:\n", y_train_a.value_counts())
+print("Test label counts:\n", y_test_a.value_counts())
+print("Train accuracy:", svm_all_pipe.score(X_train_a, y_train_a))
+print("Test accuracy:", svm_all_pipe.score(X_test_a, y_test_a))
+
+# Repeat the whole evaluation across many random splits
+import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit
+
+sss = StratifiedShuffleSplit(n_splits=30, test_size=0.2, random_state=42)
+scores = []
+
+for train_idx, test_idx in sss.split(X_all, y_all):
+    X_tr, X_te = X_all.iloc[train_idx], X_all.iloc[test_idx]
+    y_tr, y_te = y_all.iloc[train_idx], y_all.iloc[test_idx]
+
+    svm_all_pipe.fit(X_tr, y_tr)
+    scores.append(svm_all_pipe.score(X_te, y_te))
+
+print("Repeated split mean:", np.mean(scores))
+print("Repeated split std :", np.std(scores))
+print("Min/Max:", np.min(scores), np.max(scores))
+# Dummy baseline
+from sklearn.dummy import DummyClassifier
+
+dummy = DummyClassifier(strategy="most_frequent")
+dummy.fit(X_train_a, y_train_a)
+print("Dummy accuracy:", dummy.score(X_test_a, y_test_a))
+# cross validation using pipeline
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+svm_cv_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("svm", SVC(kernel="rbf"))
+])
+
+kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+cv_scores_clean = cross_val_score(
+    svm_cv_pipe,
+    X_df, y,
+    cv=kfold,
+    scoring="accuracy"
+)
+
+print("Clean CV scores:", cv_scores_clean)
+print("Clean CV mean:", cv_scores_clean.mean())
+print("Clean CV std:", cv_scores_clean.std())
