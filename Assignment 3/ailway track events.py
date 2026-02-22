@@ -107,3 +107,11 @@ print("\n--- Train/Test Evaluation ---")
 print("Accuracy:", accuracy)
 print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
 print("\nClassification report:\n", classification_report(y_test, y_pred, digits=4))
+
+# ---  Keep original feature matrix with names (for feature selection) ---
+X_df = df.drop(columns=["event", "label"])   # DataFrame with feature names
+y = df["label"]
+
+feature_names = X_df.columns.tolist()
+print("Number of features:", len(feature_names))
+print("Features:", feature_names)
