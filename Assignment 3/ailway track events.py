@@ -1,311 +1,198 @@
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedKFold, cross_val_score
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.pipeline import Pipeline
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.feature_selection import RFE
-from sklearn.ensemble import RandomForestClassifier
-# bug cheaking 
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-# ---
+# --- Data handling ---
+import pandas as pd  # for loading and manipulating CSV data
+import numpy as np   # for numeric operations (means, std, etc.)
+
+# --- Model + evaluation ---
+from sklearn.model_selection import train_test_split           # for 80/20 split
+from sklearn.model_selection import StratifiedKFold            # for k-fold CV with class balance
+from sklearn.model_selection import cross_val_score            # for CV scoring
+from sklearn.pipeline import Pipeline                          # to prevent leakage (scaling inside model pipeline)
+from sklearn.preprocessing import StandardScaler               # standardize features (mean=0, std=1)
+from sklearn.svm import SVC                                    # SVM classifier
+from sklearn.metrics import accuracy_score                     # accuracy metric
+from sklearn.metrics import classification_report, confusion_matrix  # detailed metrics + confusion matrix
+
+# --- Feature selection methods ---
+from sklearn.feature_selection import SelectKBest, chi2         # chi-square selection
+from sklearn.preprocessing import MinMaxScaler                  # chi-square needs non-negative features
+from sklearn.feature_selection import RFE                       # recursive feature elimination (wrapper)
+from sklearn.ensemble import RandomForestClassifier             # embedded importance method
 
 
-# ---  Loading the three datasets ---
+#  File paths
+# ------------------------------
 file1 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail1_extracted_features_acceleration_m1ai1-1.csv"
 file2 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail2_extracted_features_acceleration_m1ai1.csv"
 file3 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail3_extracted_features_acceleration_m2ai0.csv"
+# ------------------------------
 
-df1 = pd.read_csv(file1)
-df2 = pd.read_csv(file2)
-df3 = pd.read_csv(file3)
 
-print("Trail1 shape:", df1.shape)
-print("Trail2 shape:", df2.shape)
-print("Trail3 shape:", df3.shape)
+# Load, combine, clean, label the data
+# ----------------------------------------
+df1 = pd.read_csv(file1)  # load Trail1
+df2 = pd.read_csv(file2)  # load Trail2
+df3 = pd.read_csv(file3)  # load Trail3
 
-print("\nColumns preview:\n", df1.columns)
-print("\nEvent values example:\n", df1["event"].value_counts().head(10))
+df = pd.concat([df1, df2, df3], ignore_index=True)  # combine all into one dataset
 
-# --- Combining the datasets ---
-df = pd.concat([df1, df2, df3], ignore_index=True)
-
-print("Combined dataset shape:", df.shape)
-
-# ---  Removing unwanted columns  ---
+# Columns that must be removed
 cols_to_drop = ["start_time", "axle", "cluster", "tsne_1", "tsne_2"]
 
-existing_to_drop = [c for c in cols_to_drop if c in df.columns]
-missing = [c for c in cols_to_drop if c not in df.columns]
+# Drop only columns that exist
+df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
 
-df = df.drop(columns=existing_to_drop)
-
-print("Dropped columns:", existing_to_drop)
-print("Missing (not found, OK):", missing)
-print("New shape after drop:", df.shape)
-print("Remaining columns:\n", df.columns)
-
-# ---  Convert event column to binary label ---
+# Convert event to binary label:
+# normal -> 0, anything else -> 1
 df["label"] = (df["event"] != "normal").astype(int)
 
-print("Label distribution (0=normal, 1=event):")
-print(df["label"].value_counts())
+# Build feature matrix X (only numeric features) and target y (label)
+X_df = df.drop(columns=["event", "label"])  # 16 feature columns
+y = df["label"]                             # target labels
 
-#  see which event types became 1
-print("\nEvent types:")
-print(df["event"].value_counts().head(15))
+# Quick sanity prints (for tests)
+print("Combined shape:", df.shape)
+print("X shape:", X_df.shape, "| y shape:", y.shape)
+print("Label counts:\n", y.value_counts())
+# ----------------------------------------
 
-# ---  Separate features and labels ---
-X = df.drop(columns=["event", "label"])
-y = df["label"]
 
-print("X shape:", X.shape)
-print("y shape:", y.shape)
 
-# --- Normalize the dataset ---
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-print("Normalized X shape:", X_scaled.shape)
-
-# --- Split data (80% train / 20% test) ---
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y,
-    test_size=0.2,
-    random_state=42
-)
-
-print("X_train:", X_train.shape)
-print("X_test:", X_test.shape)
-print("y_train:", y_train.shape)
-print("y_test:", y_test.shape)
-
-# --- Train SVM using Train/Test Split ---
-svm_model = SVC(kernel='rbf')
-
-svm_model.fit(X_train, y_train)
-
-y_pred = svm_model.predict(X_test)
-
-accuracy = accuracy_score(y_test, y_pred)
-
-print("SVM Accuracy (Train/Test Split):", accuracy)
-
-# ---  5-Fold Cross Validation on training set ---
-kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-cv_scores = cross_val_score(
-    SVC(kernel='rbf'),
-    X_train,
-    y_train,
-    cv=kfold,
-    scoring="accuracy"
-)
-
-print("CV accuracy scores:", cv_scores)
-print("Mean CV accuracy:", cv_scores.mean())
-print("Std CV accuracy:", cv_scores.std())
-
-print("\n--- Train/Test Evaluation ---")
-print("Accuracy:", accuracy)
-print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
-print("\nClassification report:\n", classification_report(y_test, y_pred, digits=4))
-
-# ---  Keep original feature matrix with names (for feature selection) ---
-X_df = df.drop(columns=["event", "label"])   # DataFrame with feature names
-y = df["label"]
-
-feature_names = X_df.columns.tolist()
-print("Number of features:", len(feature_names))
-print("Features:", feature_names)
-
-# ---  Pearson Correlation Feature Selection ---
-corr_with_label = X_df.copy()
-corr_with_label["label"] = y
-
-correlations = corr_with_label.corr()["label"].drop("label").abs()
-
-top_features_pearson = correlations.sort_values(ascending=False).head(8).index
-
-print("\nTop 8 Pearson Features:")
-print(top_features_pearson)
-
-# ---  Evaluate SVM with Pearson-selected features (Top 8) ---
-X_pearson = X_df[top_features_pearson]
-
-X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(
-    X_pearson, y, test_size=0.2, random_state=42
-)
-
+# Define ONE leak-free SVM pipeline
+# ----------------------------------------
+# StandardScaler is inside Pipeline  (to aensure no leakage)
 svm_pipe = Pipeline([
     ("scaler", StandardScaler()),
     ("svm", SVC(kernel="rbf"))
 ])
+# ----------------------------------------
 
-svm_pipe.fit(X_train_p, y_train_p)
-y_pred_p = svm_pipe.predict(X_test_p)
+# Helper: evaluate any feature set in a consistent way
+# -------------------------------------------------------
+def evaluate_feature_set(X_features: pd.DataFrame, y_labels: pd.Series, title: str) -> float:
+    """
+    Evaluate a given feature subset using the SAME 80/20 stratified split + pipeline.
+    Returns test accuracy.
+    """
+    # Stratified split keeps the class balance similar in train and test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_features,
+        y_labels,
+        test_size=0.2,
+        random_state=42,
+        stratify=y_labels
+    )
 
-acc_p = accuracy_score(y_test_p, y_pred_p)
+    # Fit model on training only (scaler fits only on X_train inside pipeline)
+    svm_pipe.fit(X_train, y_train)
 
-print("SVM Accuracy with Pearson Top-8:", acc_p)
-print("Confusion matrix:\n", confusion_matrix(y_test_p, y_pred_p))
-print(classification_report(y_test_p, y_pred_p, digits=4))
+    # Predict on test set
+    y_pred = svm_pipe.predict(X_test)
 
-# ---  Chi-Square Feature Selection ---
-scaler_mm = MinMaxScaler()
-X_scaled_mm = scaler_mm.fit_transform(X_df)
+    # Compute accuracy
+    acc = accuracy_score(y_test, y_pred)
 
-chi_selector = SelectKBest(score_func=chi2, k=8)
-X_chi = chi_selector.fit_transform(X_scaled_mm, y)
+    # Print results
+    print("\n==============================")
+    print(f"{title}")
+    print("==============================")
+    print("Test accuracy:", acc)
+    print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+    print(classification_report(y_test, y_pred, digits=4))
 
-chi_features = X_df.columns[chi_selector.get_support()]
+    return acc
+# -------------------------------------------------------
 
-print("\nTop 8 Chi-Square Features:")
-print(chi_features)
 
-# ---  Evaluate SVM with Chi-Square-selected features (Top 8) ---
-X_chi_df = X_df[chi_features]
+#  Train/Test (leak-free bug FIXED)
+# ----------------------------------------
+acc_all = evaluate_feature_set(X_df, y, "SVM with ALL 16 features (Leak-free)")
+# ----------------------------------------
 
-X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(
-    X_chi_df, y, test_size=0.2, random_state=42
-)
 
-svm_pipe.fit(X_train_c, y_train_c)
-y_pred_c = svm_pipe.predict(X_test_c)
-
-acc_c = accuracy_score(y_test_c, y_pred_c)
-
-print("SVM Accuracy with Chi-Square Top-8:", acc_c)
-print("Confusion matrix:\n", confusion_matrix(y_test_c, y_pred_c))
-print(classification_report(y_test_c, y_pred_c, digits=4))
-
-# --- RFE Feature Selection ---
-svm_linear = SVC(kernel="linear")
-
-rfe_selector = RFE(estimator=svm_linear, n_features_to_select=8)
-rfe_selector.fit(X_df, y)
-
-rfe_features = X_df.columns[rfe_selector.support_]
-
-print("\nTop 8 RFE Features:")
-print(rfe_features)
-
-# ---  Evaluate SVM with RFE-selected features (Top 8) ---
-X_rfe = X_df[rfe_features]
-
-X_train_r, X_test_r, y_train_r, y_test_r = train_test_split(
-    X_rfe, y, test_size=0.2, random_state=42
-)
-
-svm_pipe.fit(X_train_r, y_train_r)
-y_pred_r = svm_pipe.predict(X_test_r)
-
-acc_r = accuracy_score(y_test_r, y_pred_r)
-
-print("SVM Accuracy with RFE Top-8:", acc_r)
-print("Confusion matrix:\n", confusion_matrix(y_test_r, y_pred_r))
-print(classification_report(y_test_r, y_pred_r, digits=4))
-
-# ---  Random Forest Feature Importance ---
-rf = RandomForestClassifier(random_state=42)
-rf.fit(X_df, y)
-
-importances = rf.feature_importances_
-
-rf_importances = pd.Series(importances, index=X_df.columns)
-top_features_rf = rf_importances.sort_values(ascending=False).head(8).index
-
-print("\nTop 8 RF Importance Features:")
-print(top_features_rf)
-
-# --- Evaluate SVM with RF-selected features (Top 8) ---
-X_rf = X_df[top_features_rf]
-
-X_train_f, X_test_f, y_train_f, y_test_f = train_test_split(
-    X_rf, y, test_size=0.2, random_state=42
-)
-
-svm_pipe.fit(X_train_f, y_train_f)
-y_pred_f = svm_pipe.predict(X_test_f)
-
-acc_f = accuracy_score(y_test_f, y_pred_f)
-
-print("SVM Accuracy with RF Top-8:", acc_f)
-print("Confusion matrix:\n", confusion_matrix(y_test_f, y_pred_f))
-print(classification_report(y_test_f, y_pred_f, digits=4))
-
-# cheaking results somthing is off!
-# All features baseline WITHOUT leakage
-X_all = X_df  # 16 features
-y_all = y
-
-X_train_a, X_test_a, y_train_a, y_test_a = train_test_split(
-    X_all, y_all, test_size=0.2, random_state=42, stratify=y_all
-)
-
-svm_all_pipe = Pipeline([
-    ("scaler", StandardScaler()),
-    ("svm", SVC(kernel="rbf"))
-])
-
-svm_all_pipe.fit(X_train_a, y_train_a)
-y_pred_a = svm_all_pipe.predict(X_test_a)
-
-print("Leak-free ALL-features accuracy:", accuracy_score(y_test_a, y_pred_a))
-print("Train label counts:\n", y_train_a.value_counts())
-print("Test label counts:\n", y_test_a.value_counts())
-print("Train accuracy:", svm_all_pipe.score(X_train_a, y_train_a))
-print("Test accuracy:", svm_all_pipe.score(X_test_a, y_test_a))
-
-# Repeat the whole evaluation across many random splits
-import numpy as np
-from sklearn.model_selection import StratifiedShuffleSplit
-
-sss = StratifiedShuffleSplit(n_splits=30, test_size=0.2, random_state=42)
-scores = []
-
-for train_idx, test_idx in sss.split(X_all, y_all):
-    X_tr, X_te = X_all.iloc[train_idx], X_all.iloc[test_idx]
-    y_tr, y_te = y_all.iloc[train_idx], y_all.iloc[test_idx]
-
-    svm_all_pipe.fit(X_tr, y_tr)
-    scores.append(svm_all_pipe.score(X_te, y_te))
-
-print("Repeated split mean:", np.mean(scores))
-print("Repeated split std :", np.std(scores))
-print("Min/Max:", np.min(scores), np.max(scores))
-# Dummy baseline
-from sklearn.dummy import DummyClassifier
-
-dummy = DummyClassifier(strategy="most_frequent")
-dummy.fit(X_train_a, y_train_a)
-print("Dummy accuracy:", dummy.score(X_test_a, y_test_a))
-# cross validation using pipeline
-from sklearn.model_selection import StratifiedKFold, cross_val_score
-
-svm_cv_pipe = Pipeline([
-    ("scaler", StandardScaler()),
-    ("svm", SVC(kernel="rbf"))
-])
-
+#  5-fold CV (leak-free bug FIXED)
+# ----------------------------------------
 kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-cv_scores_clean = cross_val_score(
-    svm_cv_pipe,
-    X_df, y,
+cv_scores = cross_val_score(
+    svm_pipe,     # pipeline => scaler happens inside each fold correctly
+    X_df,
+    y,
     cv=kfold,
     scoring="accuracy"
 )
 
-print("Clean CV scores:", cv_scores_clean)
-print("Clean CV mean:", cv_scores_clean.mean())
-print("Clean CV std:", cv_scores_clean.std())
+print("\n==============================")
+print("5-Fold Cross-Validation (Leak-free)")
+print("==============================")
+print("CV scores:", np.round(cv_scores, 4))
+print("CV mean  :", cv_scores.mean())
+print("CV std   :", cv_scores.std())
+# ----------------------------------------
+
+
+#  Feature Selection (4 methods)
+# ----------------------------------------
+
+# ---- Method 1: Pearson correlation (filter) ----
+corr_temp = X_df.copy()          # copy features
+corr_temp["label"] = y           # add label to compute correlation
+pearson_scores = corr_temp.corr()["label"].drop("label").abs()  # abs correlation with label
+top_pearson = pearson_scores.sort_values(ascending=False).head(8).index  # choose top 8
+
+acc_pearson = evaluate_feature_set(X_df[top_pearson], y, "SVM with Pearson Top-8 features")
+
+
+# ---- Method 2: Chi-square (filter) ----
+# Chi-square requires non-negative values using MinMaxScaler here only for selection step
+mm = MinMaxScaler()                          # scale features to [0,1]
+X_mm = mm.fit_transform(X_df)                # fit on full X_df (OK because this is ONLY for ranking)
+chi_selector = SelectKBest(score_func=chi2, k=8)  # select top 8 by chi2 score
+chi_selector.fit(X_mm, y)                    # compute chi2 ranking
+top_chi = X_df.columns[chi_selector.get_support()]  # get chosen feature names
+
+acc_chi = evaluate_feature_set(X_df[top_chi], y, "SVM with Chi-Square Top-8 features")
+
+
+# ---- Method 3: RFE (wrapper) ----
+# Use linear SVM as estimator for ranking features
+svm_linear = SVC(kernel="linear")
+rfe = RFE(estimator=svm_linear, n_features_to_select=8)
+rfe.fit(X_df, y)
+top_rfe = X_df.columns[rfe.support_]
+
+acc_rfe = evaluate_feature_set(X_df[top_rfe], y, "SVM with RFE Top-8 features")
+
+
+# ---- Method 4: Random Forest importance (embedded) ----
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_df, y)
+rf_importances = pd.Series(rf.feature_importances_, index=X_df.columns)
+top_rf = rf_importances.sort_values(ascending=False).head(8).index
+
+acc_rf = evaluate_feature_set(X_df[top_rf], y, "SVM with Random Forest Importance Top-8 features")
+# ----------------------------------------
+
+
+# Final summary table
+# ----------------------------------------
+print("\n==============================")
+print("FINAL SUMMARY (Leak-free)")
+print("==============================")
+summary = pd.DataFrame({
+    "Feature Set": [
+        "All 16 features",
+        "Pearson Top-8",
+        "Chi-Square Top-8",
+        "RFE Top-8",
+        "RF Importance Top-8"
+    ],
+    "Test Accuracy": [
+        acc_all,
+        acc_pearson,
+        acc_chi,
+        acc_rfe,
+        acc_rf
+    ]
+})
+print(summary.to_string(index=False))
+# ----------------------------------------
