@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 # ---  Loading the three datasets ---
 file1 = r"C:\Users\Daso-PC\Desktop\AI assigments\Assignment 3\Trail1_extracted_features_acceleration_m1ai1-1.csv"
@@ -84,3 +85,18 @@ y_pred = svm_model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 print("SVM Accuracy (Train/Test Split):", accuracy)
+
+# ---  5-Fold Cross Validation on training set ---
+kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+cv_scores = cross_val_score(
+    SVC(kernel='rbf'),
+    X_train,
+    y_train,
+    cv=kfold,
+    scoring="accuracy"
+)
+
+print("CV accuracy scores:", cv_scores)
+print("Mean CV accuracy:", cv_scores.mean())
+print("Std CV accuracy:", cv_scores.std())
