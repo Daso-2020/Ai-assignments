@@ -6,6 +6,8 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.pipeline import Pipeline
+
 
 
 # ---  Loading the three datasets ---
@@ -126,3 +128,24 @@ top_features_pearson = correlations.sort_values(ascending=False).head(8).index
 
 print("\nTop 8 Pearson Features:")
 print(top_features_pearson)
+
+# ---  Evaluate SVM with Pearson-selected features (Top 8) ---
+X_pearson = X_df[top_features_pearson]
+
+X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(
+    X_pearson, y, test_size=0.2, random_state=42
+)
+
+svm_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("svm", SVC(kernel="rbf"))
+])
+
+svm_pipe.fit(X_train_p, y_train_p)
+y_pred_p = svm_pipe.predict(X_test_p)
+
+acc_p = accuracy_score(y_test_p, y_pred_p)
+
+print("SVM Accuracy with Pearson Top-8:", acc_p)
+print("Confusion matrix:\n", confusion_matrix(y_test_p, y_pred_p))
+print(classification_report(y_test_p, y_pred_p, digits=4))
