@@ -79,7 +79,9 @@ pip install numpy matplotlib scikit-learn
 python share.py
 ---
 
+
 ## Project Structure
+```
 .
 ├── README.md
 ├── share.py
@@ -94,8 +96,8 @@ python share.py
 │ ├── dataset2_elbow_plot.png
 │ ├── dataset2_clusters.png
 │ ├── dataset2_catenary.png
-.
----
+```
+
 
 ## Summary
 
